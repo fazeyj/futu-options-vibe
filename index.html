@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能期权投研看板 | Option Premium Vibe Calculator</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#090d16',
+                        panelBg: '#111726',
+                        accentGreen: '#00ff87',
+                        accentRed: '#ff3366',
+                        accentYellow: '#ffd600',
+                        accentBlue: '#00e5ff',
+                        accentIndigo: '#2979ff',
+                        borderGray: '#1e293b',
+                    },
+                    fontFamily: {
+                        mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+                        sans: ['Plus Jakarta Sans', 'Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #080b11;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(13, 25, 48, 0.5) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(9, 21, 38, 0.4) 0px, transparent 50%),
+                linear-gradient(rgba(255, 255, 255, 0.007) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.007) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+        }
+
+        /* Glassmorphism Panel */
+        .glass-panel {
+            background: rgba(17, 23, 38, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(8, 11, 17, 0.5);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Input Range Styling */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            background: #1e293b;
+            height: 6px;
+            border-radius: 3px;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #00e5ff;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+            transition: all 0.1s ease-in-out;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.25);
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.8);
+        }
+
+        /* Pulsing Glow Animation */
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 0.6; box-shadow: 0 0 12px rgba(0, 255, 135, 0.2); }
+            50% { opacity: 1; box-shadow: 0 0 20px rgba(0, 255, 135, 0.5); }
+        }
+        .live-indicator {
+            animation: pulse-glow 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col antialiased pb-8">
+
+    <!-- Header Block -->
+    <header class="w-full border-b border-white/5 bg-slate-950/40 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-[1600px] mx-auto px-4 md:px-6 py-3.5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            
+            <!-- Logo & Title -->
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-accentIndigo via-accentBlue to-accentGreen p-[1.5px] flex items-center justify-center shadow-lg shadow-accentBlue/10">
+                    <div class="w-full h-full rounded-[10px] bg-darkBg flex items-center justify-center">
+                        <i data-lucide="percent" class="w-5 h-5 text-accentGreen"></i>
+                    </div>
+                </div>
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <h1 class="text-lg font-bold tracking-wide text-white font-sans">智能期权投研看板</h1>
+                        <span class="text-xs px-2 py-0.5 rounded bg-accentIndigo/10 text-accentBlue border border-accentBlue/20 font-mono">Option Premium Vibe Calculator</span>
+                    </div>
+                    <p class="text-xs text-slate-400 font-sans mt-0.5">面向备兑开仓 (Covered Call) 与现金备兑 (Cash-Secured Put) 策略的专业研究工具</p>
+                </div>
+            </div>
+
+            <!-- Ticker presets & Futu status -->
+            <div class="flex flex-wrap items-center gap-3">
+                <!-- Tickers Selector -->
+                <div class="flex rounded-lg bg-slate-900/80 p-0.5 border border-white/5">
+                    <button onclick="selectStock('NVDA')" id="btn-NVDA" class="ticker-btn px-3 py-1 text-xs font-semibold rounded-md transition-all duration-200 bg-accentIndigo text-white shadow-md">
+                        NVDA <span class="text-[10px] text-accentGreen ml-1 font-mono font-normal" id="header-price-NVDA">+4.8%</span>
+                    </button>
+                    <button onclick="selectStock('AAPL')" id="btn-AAPL" class="ticker-btn px-3 py-1 text-xs font-semibold rounded-md transition-all duration-200 text-slate-400 hover:text-white ml-1">
+                        AAPL <span class="text-[10px] text-accentRed ml-1 font-mono font-normal" id="header-price-AAPL">-0.6%</span>
+                    </button>
+                    <button onclick="selectStock('TSLA')" id="btn-TSLA" class="ticker-btn px-3 py-1 text-xs font-semibold rounded-md transition-all duration-200 text-slate-400 hover:text-white ml-1">
+                        TSLA <span class="text-[10px] text-accentGreen ml-1 font-mono font-normal" id="header-price-TSLA">+8.3%</span>
+                    </button>
+                </div>
+
+                <!-- Broker API Status indicator -->
+                <div class="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-slate-900/50 border border-white/5">
+                    <span class="w-2 h-2 rounded-full bg-accentGreen live-indicator"></span>
+                    <span class="text-[11px] text-slate-400 font-mono">FUTU-OpenAPI: <span class="text-accentGreen">Connected (Simulated)</span></span>
+                </div>
+            </div>
+            
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-grow max-w-[1600px] w-full mx-auto px-4 md:px-6 mt-6 grid grid-cols-1 lg:grid-cols-10 gap-6">
+        
+        <!-- ==================== LEFT COLUMN (45% - 4.5/10) ==================== -->
+        <section class="lg:col-span-4 flex flex-col space-y-6">
+            
+            <!-- Stock Diagnostic Title & Quote Panel -->
+            <div class="glass-panel rounded-2xl p-5 relative overflow-hidden">
+                <!-- Background glow -->
+                <div class="absolute top-0 right-0 w-32 h-32 bg-accentBlue/5 rounded-full blur-3xl pointer-events-none"></div>
+                
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-2xl font-bold tracking-tight text-white font-mono" id="stock-symbol">NVDA</span>
+                            <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-300" id="stock-name">英伟达 / NVIDIA</span>
+                        </div>
+                        <div class="flex items-baseline space-x-3 mt-1.5">
+                            <span class="text-3xl font-extrabold text-white font-mono" id="stock-price-display">$125.40</span>
+                            <span class="text-sm font-semibold font-mono text-accentGreen" id="stock-change-display">+4.8%</span>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">诊断模块</span>
+                        <div class="text-xs text-slate-400 font-mono mt-1" id="update-time-display">实时行情 (延时)</div>
+                    </div>
+                </div>
+
+                <!-- Divider -->
+                <div class="border-t border-white/5 my-4"></div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="p-3 bg-slate-900/40 rounded-xl border border-white/5">
+                        <span class="text-xs text-slate-400 flex items-center gap-1.5">
+                            <i data-lucide="shield-alert" class="w-3.5 h-3.5 text-accentGreen"></i> 强支撑位 (Support)
+                        </span>
+                        <span class="text-lg font-bold text-accentGreen font-mono block mt-1" id="support-level-display">$118.00</span>
+                    </div>
+                    <div class="p-3 bg-slate-900/40 rounded-xl border border-white/5">
+                        <span class="text-xs text-slate-400 flex items-center gap-1.5">
+                            <i data-lucide="trending-up" class="w-3.5 h-3.5 text-accentRed"></i> 强阻力位 (Resistance)
+                        </span>
+                        <span class="text-lg font-bold text-accentRed font-mono block mt-1" id="resistance-level-display">$135.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CARD A: Company business & business model -->
+            <div class="glass-panel rounded-2xl p-5 flex-grow flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+                            <i data-lucide="briefcase" class="w-4 h-4 text-accentBlue"></i> 核心业务与商业模型
+                        </h3>
+                        <span class="text-[10px] px-2 py-0.5 rounded bg-accentBlue/10 text-accentBlue border border-accentBlue/20 font-sans">白话拆解</span>
+                    </div>
+
+                    <!-- Core business block -->
+                    <div class="mb-4">
+                        <span class="text-xs text-slate-500 font-semibold block mb-1">一句话核心业务</span>
+                        <p class="text-xs text-slate-300 leading-relaxed bg-slate-900/30 p-2.5 rounded-lg border border-white/5 font-sans" id="business-summary">
+                            全球AI算力芯片巨头，构建了硬件(GPU)+软件(CUDA)的极深护城河。
+                        </p>
+                    </div>
+
+                    <!-- How we make money -->
+                    <div class="mb-4">
+                        <span class="text-xs text-slate-500 font-semibold block mb-1">怎么赚钱的 (商业模式)</span>
+                        <p class="text-xs text-slate-300 leading-relaxed bg-slate-900/30 p-2.5 rounded-lg border border-white/5 font-sans" id="revenue-model">
+                            销售高性能数据中心GPU（H100/H200/Blackwell）、游戏显卡以及AI Enterprise软件授权。
+                        </p>
+                    </div>
+
+                    <!-- Revenue breakdown (Dynamic visual bars) -->
+                    <div class="mb-4">
+                        <span class="text-xs text-slate-500 font-semibold block mb-2">主营业务营收占比</span>
+                        <div class="space-y-2.5" id="revenue-breakdown-list">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Next Catalyst -->
+                <div class="mt-4 pt-4 border-t border-white/5 bg-gradient-to-r from-accentIndigo/5 to-transparent p-3.5 rounded-xl border border-accentIndigo/10">
+                    <span class="text-xs text-accentBlue font-bold flex items-center gap-1.5 mb-1.5">
+                        <i data-lucide="calendar" class="w-4 h-4"></i> 下一个重大催化剂 (Catalyst)
+                    </span>
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs text-slate-300 font-medium" id="catalyst-desc">2026年Q2财报披露（披露Blackwell芯片量产指引）</span>
+                        <span class="text-xs font-mono font-bold text-accentYellow bg-accentYellow/10 px-2 py-0.5 rounded border border-accentYellow/20 shrink-0 ml-2" id="catalyst-countdown">24 天后</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CARD B: Technical Pattern & Trend Commentary -->
+            <div class="glass-panel rounded-2xl p-5">
+                <div class="flex items-center justify-between mb-4.5">
+                    <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+                        <i data-lucide="line-chart" class="w-4 h-4 text-accentYellow"></i> 技术形态走势点评
+                    </h3>
+                    <span class="text-[10px] px-2 py-0.5 rounded bg-accentYellow/10 text-accentYellow border border-accentYellow/20 font-mono" id="trend-badge">BULLISH</span>
+                </div>
+
+                <div class="space-y-4">
+                    <!-- Trend description -->
+                    <div>
+                        <span class="text-xs text-slate-500 font-semibold block mb-1">多空趋势状态</span>
+                        <div class="flex items-center space-x-2">
+                            <span class="w-2 h-2 rounded-full bg-accentGreen" id="trend-dot"></span>
+                            <span class="text-xs text-slate-200 font-medium font-sans" id="trend-summary-text">均线多头排列（MA20 > MA50 > MA120）</span>
+                        </div>
+                    </div>
+
+                    <!-- Safety indicator from UI context -->
+                    <div class="p-3 rounded-xl bg-slate-900/60 border border-white/5 relative overflow-hidden transition-all duration-300" id="strike-position-alert">
+                        <div class="flex items-start space-x-3">
+                            <div class="p-1 rounded bg-slate-800 text-slate-400 mt-0.5" id="alert-icon-container">
+                                <i data-lucide="info" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <span class="text-xs font-bold text-slate-300 block">行权价与支撑位关系</span>
+                                <p class="text-xs text-slate-400 mt-1 leading-relaxed" id="alert-text">
+                                    暂无期权输入参数。请在右侧输入期权行权价，系统将评估行权价格是否低于此强支撑位。
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Skills injection comment in view -->
+                <div class="text-[10px] text-slate-500 font-mono mt-4 text-right">
+                    <!-- TODO: 未来在此处接入 富途 API Skill - 获取股票日K/周K技术指标 & 筹码分布数据 -->
+                    <span class="opacity-40">&lt;Futu Broker Skill Hook&gt;</span>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ==================== RIGHT COLUMN (55% - 5.5/10) ==================== -->
+        <section class="lg:col-span-6 flex flex-col space-y-6">
+            
+            <!-- Core Calculator Panel -->
+            <div class="glass-panel rounded-2xl p-6 flex-grow flex flex-col justify-between relative overflow-hidden">
+                <!-- Background glow bottom-left -->
+                <div class="absolute -bottom-12 -left-12 w-48 h-48 bg-accentGreen/5 rounded-full blur-3xl pointer-events-none"></div>
+
+                <div>
+                    <!-- Section Title & Strategy Switch -->
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                        <div>
+                            <h2 class="text-base font-extrabold text-white tracking-wide flex items-center gap-2">
+                                <i data-lucide="cpu" class="w-5 h-5 text-accentBlue"></i> 期权性价比与年化计算引擎
+                            </h2>
+                            <p class="text-xs text-slate-400 mt-0.5">滑块拖拽或输入精确数值，系统毫秒级重算结果</p>
+                        </div>
+                        
+                        <!-- Toggle Switch Button -->
+                        <div class="relative flex p-1 bg-slate-900 rounded-xl border border-white/5 shrink-0 self-start sm:self-auto shadow-inner">
+                            <div class="absolute top-1 bottom-1 transition-all duration-300 ease-out bg-gradient-to-r from-accentIndigo to-accentBlue rounded-lg shadow" id="toggle-bg" style="width: 140px; left: 4px;"></div>
+                            
+                            <button onclick="setStrategy('PUT')" id="btn-PUT" class="relative z-10 w-[140px] py-1.5 text-xs font-bold text-center text-white transition-colors duration-200">
+                                我想接货 Sell Put
+                            </button>
+                            <button onclick="setStrategy('CALL')" id="btn-CALL" class="relative z-10 w-[140px] py-1.5 text-xs font-bold text-center text-slate-400 hover:text-slate-200 transition-colors duration-200">
+                                我有持仓 Sell Call
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 4 inputs module -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        
+                        <!-- 1. Stock Price -->
+                        <div class="p-4 bg-slate-900/40 rounded-xl border border-white/5 hover:border-white/10 transition-colors duration-200">
+                            <div class="flex justify-between items-center mb-2">
+                                <label class="text-xs text-slate-400 font-semibold flex items-center gap-1.5">
+                                    正股现价 (Stock Price)
+                                </label>
+                                <div class="relative">
+                                    <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-mono">$</span>
+                                    <input type="number" id="input-stock-price" step="0.1" class="w-24 pl-5 pr-2 py-0.5 bg-slate-800 text-slate-100 font-mono text-xs rounded border border-white/10 focus:outline-none focus:border-accentBlue text-right" value="125.4" oninput="syncInput('stock-price', this.value)">
+                                </div>
+                            </div>
+                            <input type="range" id="slider-stock-price" min="50" max="300" step="0.5" value="125.4" class="w-full" oninput="syncSlider('stock-price', this.value)">
+                            <div class="flex justify-between text-[10px] text-slate-500 font-mono mt-1.5">
+                                <span>$50</span>
+                                <span>$300</span>
+                            </div>
+                        </div>
+
+                        <!-- 2. Strike Price -->
+                        <div class="p-4 bg-slate-900/40 rounded-xl border border-white/5 hover:border-white/10 transition-colors duration-200" id="strike-price-card">
+                            <div class="flex justify-between items-center mb-2">
+                                <label class="text-xs text-slate-400 font-semibold flex items-center gap-1.5">
+                                    期权行权价 (Strike Price)
+                                </label>
+                                <div class="relative">
+                                    <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-mono">$</span>
+                                    <input type="number" id="input-strike-price" step="0.5" class="w-24 pl-5 pr-2 py-0.5 bg-slate-800 text-slate-100 font-mono text-xs rounded border border-white/10 focus:outline-none focus:border-accentBlue text-right" value="115" oninput="syncInput('strike-price', this.value)">
+                                </div>
+                            </div>
+                            <input type="range" id="slider-strike-price" min="50" max="300" step="0.5" value="115" class="w-full" oninput="syncSlider('strike-price', this.value)">
+                            <div class="flex justify-between text-[10px] text-slate-500 font-mono mt-1.5">
+                                <span>$50</span>
+                                <span>$300</span>
+                            </div>
+                        </div>
+
+                        <!-- 3. Premium -->
+                        <div class="p-4 bg-slate-900/40 rounded-xl border border-white/5 hover:border-white/10 transition-colors duration-200">
+                            <div class="flex justify-between items-center mb-2">
+                                <label class="text-xs text-slate-400 font-semibold flex items-center gap-1.5">
+                                    期权权利金 (Premium)
+                                </label>
+                                <div class="relative">
+                                    <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-mono">$</span>
+                                    <input type="number" id="input-premium" step="0.05" class="w-24 pl-5 pr-2 py-0.5 bg-slate-800 text-slate-100 font-mono text-xs rounded border border-white/10 focus:outline-none focus:border-accentBlue text-right" value="3.5" oninput="syncInput('premium', this.value)">
+                                </div>
+                            </div>
+                            <input type="range" id="slider-premium" min="0.1" max="25" step="0.1" value="3.5" class="w-full" oninput="syncSlider('premium', this.value)">
+                            <div class="flex justify-between text-[10px] text-slate-500 font-mono mt-1.5">
+                                <span>$0.1</span>
+                                <span>$25</span>
+                            </div>
+                        </div>
+
+                        <!-- 4. Days to Maturity -->
+                        <div class="p-4 bg-slate-900/40 rounded-xl border border-white/5 hover:border-white/10 transition-colors duration-200">
+                            <div class="flex justify-between items-center mb-2">
+                                <label class="text-xs text-slate-400 font-semibold flex items-center gap-1.5">
+                                    到期天数 (Days to Maturity)
+                                </label>
+                                <div class="relative">
+                                    <input type="number" id="input-days" step="1" class="w-20 pr-2 py-0.5 bg-slate-800 text-slate-100 font-mono text-xs rounded border border-white/10 focus:outline-none focus:border-accentBlue text-right" value="30" oninput="syncInput('days', this.value)">
+                                    <span class="text-slate-400 text-[10px] ml-1 font-semibold">天</span>
+                                </div>
+                            </div>
+                            <input type="range" id="slider-days" min="1" max="120" step="1" value="30" class="w-full" oninput="syncSlider('days', this.value)">
+                            <div class="flex justify-between text-[10px] text-slate-500 font-mono mt-1.5">
+                                <span>1 天</span>
+                                <span>120 天</span>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Calculation Output Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mt-4">
+                    
+                    <!-- Annualized Yield -->
+                    <div class="glass-panel p-4 rounded-xl border border-white/5 flex flex-col justify-between relative overflow-hidden bg-slate-900/20">
+                        <div class="absolute top-0 right-0 p-1.5 opacity-20"><i data-lucide="percent" class="w-4 h-4 text-accentGreen"></i></div>
+                        <div>
+                            <span class="text-xs text-slate-400 font-medium">静态年化收益率</span>
+                            <span class="text-2xl font-extrabold text-accentGreen font-mono block mt-1" id="out-yield">--</span>
+                        </div>
+                        <div class="mt-3">
+                            <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                                <div id="yield-progress" class="bg-gradient-to-r from-accentBlue to-accentGreen h-1.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                            </div>
+                            <span class="text-[9px] text-slate-500 font-mono block mt-1" id="out-yield-formula">公式: (3.5 / 115) * (365 / 30)</span>
+                        </div>
+                    </div>
+
+                    <!-- Margin of Safety -->
+                    <div class="glass-panel p-4 rounded-xl border border-white/5 flex flex-col justify-between relative overflow-hidden bg-slate-900/20">
+                        <div class="absolute top-0 right-0 p-1.5 opacity-20"><i data-lucide="shield-check" class="w-4 h-4 text-accentBlue"></i></div>
+                        <div>
+                            <span class="text-xs text-slate-400 font-medium">安全边际 (对现价)</span>
+                            <span class="text-2xl font-extrabold text-accentBlue font-mono block mt-1" id="out-safety">--</span>
+                        </div>
+                        <div class="mt-3">
+                            <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                                <div id="safety-progress" class="bg-accentBlue h-1.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                            </div>
+                            <span class="text-[9px] text-slate-500 font-mono block mt-1" id="out-safety-desc">比正股折价 --% 购入</span>
+                        </div>
+                    </div>
+
+                    <!-- Scorecard Gauge -->
+                    <div class="glass-panel p-4 rounded-xl border border-white/5 flex items-center justify-between bg-slate-900/20 relative overflow-hidden">
+                        <div class="flex-grow">
+                            <span class="text-xs text-slate-400 font-medium">期权性价比评分</span>
+                            <div class="flex items-baseline space-x-1.5 mt-1">
+                                <span class="text-3xl font-black font-mono tracking-tight" id="out-score">--</span>
+                                <span class="text-xs font-bold font-sans text-slate-400" id="out-score-grade">--</span>
+                            </div>
+                            <span class="text-[10px] text-slate-500 block mt-2" id="out-score-verdict">风险收益比匹配度</span>
+                        </div>
+                        
+                        <!-- Visual Ring Gauge -->
+                        <div class="relative w-16 h-16 flex items-center justify-center shrink-0">
+                            <svg class="w-full h-full transform -rotate-90">
+                                <circle cx="32" cy="32" r="26" stroke="#1e293b" stroke-width="4.5" fill="transparent" />
+                                <circle id="score-ring" cx="32" cy="32" r="26" stroke="#00ff87" stroke-width="4.5" fill="transparent" 
+                                        stroke-dasharray="163.3" stroke-dashoffset="163.3" stroke-linecap="round" class="transition-all duration-500" />
+                            </svg>
+                            <span class="absolute text-[10px] font-bold text-slate-400 font-mono" id="score-ring-text">--%</span>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Dynamic copilot advice card -->
+                <div class="mt-6 p-4 rounded-xl bg-slate-950/50 border border-white/5 bg-gradient-to-r from-accentBlue/5 to-transparent relative">
+                    <div class="absolute top-2.5 right-3 flex items-center space-x-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-accentBlue"></span>
+                        <span class="text-[9px] text-accentBlue font-mono uppercase tracking-widest font-bold">Smart Copilot</span>
+                    </div>
+                    <h4 class="text-xs font-bold text-slate-300 flex items-center gap-1.5 mb-1.5">
+                        <i data-lucide="wand-2" class="w-3.5 h-3.5 text-accentBlue"></i> 智能投研策略点评
+                    </h4>
+                    <p class="text-xs text-slate-400 leading-relaxed font-sans" id="copilot-advice">
+                        计算中，请稍后...
+                    </p>
+                </div>
+
+                <!-- Interactive Futu trade submission simulated block -->
+                <div class="mt-5 flex items-center justify-between p-3 rounded-xl bg-slate-900/60 border border-dashed border-white/10">
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="zap" class="w-4 h-4 text-accentYellow"></i>
+                        <span class="text-xs text-slate-400 font-sans">交易对接：可直接在此向富途模拟盘发送单腿期权委买/委卖指令</span>
+                    </div>
+                    <!-- TODO: 未来在此处接入 富途 API Skill - 提交期权下单交易指令 -->
+                    <button onclick="simulateOrderSubmit()" class="px-4 py-1.5 rounded-lg bg-accentIndigo hover:bg-accentIndigo/80 text-white text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 shadow-lg shadow-accentIndigo/20">
+                        <i data-lucide="send" class="w-3.5 h-3.5"></i> 发送指令
+                    </button>
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Simulated Log Console (Terminal vibe at footer) -->
+    <footer class="max-w-[1600px] w-full mx-auto px-4 md:px-6 mt-6">
+        <div class="glass-panel rounded-xl p-4 overflow-hidden">
+            <div class="flex items-center justify-between mb-2 pb-2 border-b border-white/5">
+                <span class="text-xs font-bold text-slate-300 flex items-center gap-2 font-mono">
+                    <span class="w-2 h-2 rounded bg-accentBlue animate-pulse"></span> SYSTEM REALTIME SIGNAL MONITOR
+                </span>
+                <span class="text-[10px] text-slate-500 font-mono">Press ticker buttons to switch stock profiles</span>
+            </div>
+            <!-- Log output items -->
+            <div class="font-mono text-[11px] text-slate-400 space-y-1 max-h-[100px] overflow-y-auto" id="console-logs">
+                <p class="text-slate-500"><span class="text-accentBlue">[07:48:15]</span> SYSTEM: Web framework loaded successfully. Ready for valuation calculations.</p>
+                <p class="text-slate-500"><span class="text-accentBlue">[07:48:16]</span> API: Fetching option chain matrix for NVDA... Completed.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Interactive JS logic -->
+    <script>
+        // Active preset ticker
+        let activeTicker = "NVDA";
+        // Strategy type: PUT (Sell Put) or CALL (Sell Call)
+        let activeStrategy = "PUT";
+
+        // Mock databases
+        const stockProfiles = {
+            NVDA: {
+                symbol: "NVDA",
+                name: "英伟达 / NVIDIA",
+                price: 125.40,
+                change: "+4.8%",
+                changeType: "up",
+                business: "全球AI算力芯片巨头，构建了硬件(GPU)+软件(CUDA)的极深护城河。",
+                howWeMakeMoney: "销售高性能数据中心GPU（H100/H200/Blackwell）、游戏显卡以及AI Enterprise软件授权。",
+                revenue: [
+                    { name: "数据中心 (AI Data Center)", value: 87, color: "#00ff87" },
+                    { name: "游戏显卡 (Gaming GPU)", value: 9, color: "#00e5ff" },
+                    { name: "专业可视化 & Auto", value: 4, color: "#ffd600" }
+                ],
+                catalyst: "2026年Q2财报披露（披露Blackwell芯片量产出货指引）",
+                catalystDays: 24,
+                trend: "均线多头排列（MA20 > MA50 > MA120）",
+                trendType: "bullish",
+                support: 118.00,
+                resistance: 135.00
+            },
+            AAPL: {
+                symbol: "AAPL",
+                name: "苹果公司 / Apple",
+                price: 214.30,
+                change: "-0.6%",
+                changeType: "down",
+                business: "全球消费电子之王，以iPhone为核心，通过iOS生态锁定全球超20亿高净值活跃设备。",
+                howWeMakeMoney: "高客单价硬件销售（iPhone/Mac/iPad）以及高毛利的互联网服务（App Store/Cloud/Pay）。",
+                revenue: [
+                    { name: "iPhone 硬件销售", value: 51, color: "#00ff87" },
+                    { name: "高毛利互联网服务", value: 24, color: "#00e5ff" },
+                    { name: "iPad & Mac 电脑", value: 15, color: "#2979ff" },
+                    { name: "可穿戴及配件设备", value: 10, color: "#ffd600" }
+                ],
+                catalyst: "秋季新品发布会（iPhone 18 及 Apple Intelligence 升级）",
+                catalystDays: 45,
+                trend: "多空震荡整理（MA20/MA50交织，在支撑位附近企稳）",
+                trendType: "neutral",
+                support: 205.00,
+                resistance: 222.00
+            },
+            TSLA: {
+                symbol: "TSLA",
+                name: "特斯拉 / Tesla",
+                price: 187.20,
+                change: "+8.3%",
+                changeType: "up",
+                business: "智能电动车领军企业，致力于垂直整合产业链，并加速向FSD自动驾驶、机器人与储能转型。",
+                howWeMakeMoney: "电动汽车销售与租赁、FSD软件订阅授权、储能电池（Megapack）以及超级充电 network服务。",
+                revenue: [
+                    { name: "智能电动汽车销售", value: 82, color: "#00ff87" },
+                    { name: "Megapack 储能储电", value: 9, color: "#00e5ff" },
+                    { name: "超级充电 & 售后服务", value: 9, color: "#2979ff" }
+                ],
+                catalyst: "Robotaxi 自动驾驶出租车发布会（演示无方向盘原型车）",
+                catalystDays: 15,
+                trend: "技术形态探底回升（向上突破MA50阻力，短期多头较强）",
+                trendType: "bullish",
+                support: 174.00,
+                resistance: 198.00
+            }
+        };
+
+        // Initialize lucide icons
+        lucide.createIcons();
+
+        // Add log entry helper
+        function addConsoleLog(message, type = "info") {
+            const container = document.getElementById("console-logs");
+            const date = new Date();
+            const timeStr = date.toTimeString().split(' ')[0];
+            const colorClass = type === "info" ? "text-accentBlue" : type === "success" ? "text-accentGreen" : type === "warn" ? "text-accentYellow" : "text-accentRed";
+            
+            const logHTML = `<p class="text-slate-400"><span class="${colorClass}">[${timeStr}]</span> ${message}</p>`;
+            container.innerHTML += logHTML;
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Ticker selection handler
+        function selectStock(ticker) {
+            activeTicker = ticker;
+            
+            // Highlight selector button
+            document.querySelectorAll(".ticker-btn").forEach(btn => {
+                btn.classList.remove("bg-accentIndigo", "text-white", "shadow-md");
+                btn.classList.add("text-slate-400", "hover:text-white");
+            });
+            const activeBtn = document.getElementById(`btn-${ticker}`);
+            activeBtn.classList.remove("text-slate-400", "hover:text-white");
+            activeBtn.classList.add("bg-accentIndigo", "text-white", "shadow-md");
+
+            // Update profile content
+            const profile = stockProfiles[ticker];
+            document.getElementById("stock-symbol").innerText = profile.symbol;
+            document.getElementById("stock-name").innerText = profile.name;
+            document.getElementById("stock-price-display").innerText = `$${profile.price.toFixed(2)}`;
+            document.getElementById("stock-change-display").innerText = profile.change;
+            
+            // Adjust change text color
+            if (profile.changeType === "up") {
+                document.getElementById("stock-change-display").className = "text-sm font-semibold font-mono text-accentGreen";
+            } else {
+                document.getElementById("stock-change-display").className = "text-sm font-semibold font-mono text-accentRed";
+            }
+
+            document.getElementById("support-level-display").innerText = `$${profile.support.toFixed(2)}`;
+            document.getElementById("resistance-level-display").innerText = `$${profile.resistance.toFixed(2)}`;
+            document.getElementById("business-summary").innerText = profile.business;
+            document.getElementById("revenue-model").innerText = profile.howWeMakeMoney;
+
+            // Render main revenue items
+            const revList = document.getElementById("revenue-breakdown-list");
+            revList.innerHTML = "";
+            profile.revenue.forEach(item => {
+                revList.innerHTML += `
+                    <div>
+                        <div class="flex justify-between text-[11px] mb-1 font-sans">
+                            <span class="text-slate-400">${item.name}</span>
+                            <span class="text-slate-200 font-mono font-bold">${item.value}%</span>
+                        </div>
+                        <div class="w-full bg-slate-900/60 rounded-full h-1.5 border border-white/5">
+                            <div class="h-full rounded-full" style="background-color: ${item.color}; width: ${item.value}%"></div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            // Catalyst
+            document.getElementById("catalyst-desc").innerText = profile.catalyst;
+            document.getElementById("catalyst-countdown").innerText = `${profile.catalystDays} 天后`;
+
+            // Trend
+            const trendBadge = document.getElementById("trend-badge");
+            const trendDot = document.getElementById("trend-dot");
+            trendBadge.innerText = profile.trendType.toUpperCase();
+            document.getElementById("trend-summary-text").innerText = profile.trend;
+            
+            if (profile.trendType === "bullish") {
+                trendBadge.className = "text-[10px] px-2 py-0.5 rounded bg-accentGreen/10 text-accentGreen border border-accentGreen/20 font-mono";
+                trendDot.className = "w-2 h-2 rounded-full bg-accentGreen";
+            } else if (profile.trendType === "neutral") {
+                trendBadge.className = "text-[10px] px-2 py-0.5 rounded bg-accentYellow/10 text-accentYellow border border-accentYellow/20 font-mono";
+                trendDot.className = "w-2 h-2 rounded-full bg-accentYellow";
+            } else {
+                trendBadge.className = "text-[10px] px-2 py-0.5 rounded bg-accentRed/10 text-accentRed border border-accentRed/20 font-mono";
+                trendDot.className = "w-2 h-2 rounded-full bg-accentRed";
+            }
+
+            // Sync calculator values
+            // Set stock price slider min/max based on profile price
+            const pRange = profile.price * 0.4;
+            const sliderStock = document.getElementById("slider-stock-price");
+            sliderStock.min = Math.floor(profile.price - pRange);
+            sliderStock.max = Math.ceil(profile.price + pRange);
+            sliderStock.value = profile.price;
+            document.getElementById("input-stock-price").value = profile.price;
+
+            // Set strike price slider min/max
+            const sliderStrike = document.getElementById("slider-strike-price");
+            sliderStrike.min = Math.floor(profile.price - pRange);
+            sliderStrike.max = Math.ceil(profile.price + pRange);
+            
+            // Sensible strike defaults: PUT strategy defaults to strike below spot, CALL defaults to above spot
+            let defaultStrike = activeStrategy === "PUT" ? Math.floor(profile.price * 0.95) : Math.ceil(profile.price * 1.05);
+            sliderStrike.value = defaultStrike;
+            document.getElementById("input-strike-price").value = defaultStrike;
+
+            // Sensible premium default based on stock price
+            let defaultPremium = (profile.price * 0.03).toFixed(2); // ~3% premium
+            const sliderPremium = document.getElementById("slider-premium");
+            sliderPremium.max = Math.ceil(profile.price * 0.15); // max premium slider is 15% of spot
+            sliderPremium.value = defaultPremium;
+            document.getElementById("input-premium").value = defaultPremium;
+
+            addConsoleLog(`Profile switched to ${ticker}. Spot: $${profile.price}, support: $${profile.support}, resistance: $${profile.resistance}.`, "info");
+            
+            // Recompute outputs
+            calculateAll();
+        }
+
+        // Strategy Toggle Handler
+        function setStrategy(strategy) {
+            activeStrategy = strategy;
+            
+            // Visual toggle animation
+            const toggleBg = document.getElementById("toggle-bg");
+            const btnPUT = document.getElementById("btn-PUT");
+            const btnCALL = document.getElementById("btn-CALL");
+
+            if (strategy === "PUT") {
+                toggleBg.style.left = "4px";
+                toggleBg.style.width = "140px";
+                btnPUT.classList.remove("text-slate-400", "hover:text-slate-200");
+                btnPUT.classList.add("text-white");
+                btnCALL.classList.remove("text-white");
+                btnCALL.classList.add("text-slate-400", "hover:text-slate-200");
+                
+                // Adjust default strike price to below current price for Sell Put
+                const stockPrice = parseFloat(document.getElementById("input-stock-price").value);
+                const suggestedStrike = Math.floor(stockPrice * 0.95);
+                document.getElementById("input-strike-price").value = suggestedStrike;
+                document.getElementById("slider-strike-price").value = suggestedStrike;
+            } else {
+                toggleBg.style.left = "144px";
+                toggleBg.style.width = "140px";
+                btnCALL.classList.remove("text-slate-400", "hover:text-slate-200");
+                btnCALL.classList.add("text-white");
+                btnPUT.classList.remove("text-white");
+                btnPUT.classList.add("text-slate-400", "hover:text-slate-200");
+                
+                // Adjust default strike price to above current price for Sell Call
+                const stockPrice = parseFloat(document.getElementById("input-stock-price").value);
+                const suggestedStrike = Math.ceil(stockPrice * 1.05);
+                document.getElementById("input-strike-price").value = suggestedStrike;
+                document.getElementById("slider-strike-price").value = suggestedStrike;
+            }
+
+            addConsoleLog(`Strategy toggled to ${strategy === "PUT" ? "Sell Put (现金接货)" : "Sell Call (备兑收租)"}.`, "success");
+            calculateAll();
+        }
+
+        // Sync numeric input changes with range sliders
+        function syncInput(id, val) {
+            const numericValue = parseFloat(val);
+            if (!isNaN(numericValue)) {
+                const slider = document.getElementById(`slider-${id}`);
+                // Dynamically expand slider min/max if input values exceed bounds
+                if (numericValue > parseFloat(slider.max)) {
+                    slider.max = Math.ceil(numericValue * 1.2);
+                } else if (numericValue < parseFloat(slider.min) && numericValue > 0) {
+                    slider.min = Math.floor(numericValue * 0.8);
+                }
+                slider.value = numericValue;
+                calculateAll();
+            }
+        }
+
+        // Sync range slider changes with numeric inputs
+        function syncSlider(id, val) {
+            document.getElementById(`input-${id}`).value = val;
+            calculateAll();
+        }
+
+        // CORE CALCULATION ENGINE
+        function calculateAll() {
+            const stockPrice = parseFloat(document.getElementById("input-stock-price").value) || 0;
+            const strikePrice = parseFloat(document.getElementById("input-strike-price").value) || 0;
+            const premium = parseFloat(document.getElementById("input-premium").value) || 0;
+            const days = parseFloat(document.getElementById("input-days").value) || 1;
+
+            if (stockPrice === 0 || strikePrice === 0 || premium === 0) {
+                return;
+            }
+
+            const profile = stockProfiles[activeTicker];
+
+            // 1. Annualized Yield
+            let annualizedYield = 0;
+            let yieldFormulaText = "";
+            
+            if (activeStrategy === "PUT") {
+                // Sell Put formula: (Premium / Strike) * (365 / Days) * 100
+                annualizedYield = (premium / strikePrice) * (365 / days) * 100;
+                yieldFormulaText = `公式: (${premium.toFixed(2)} / ${strikePrice.toFixed(2)}) × (365 / ${days}天)`;
+            } else {
+                // Sell Call formula: (Premium / StockPrice) * (365 / Days) * 100
+                annualizedYield = (premium / stockPrice) * (365 / days) * 100;
+                yieldFormulaText = `公式: (${premium.toFixed(2)} / ${stockPrice.toFixed(2)}) × (365 / ${days}天)`;
+            }
+
+            document.getElementById("out-yield").innerText = `${annualizedYield.toFixed(2)}%`;
+            document.getElementById("out-yield-formula").innerText = yieldFormulaText;
+
+            // Yield visual progress bar (cap indicator width at 40% yield)
+            const yieldPercent = Math.min((annualizedYield / 40) * 100, 100);
+            document.getElementById("yield-progress").style.width = `${yieldPercent}%`;
+
+            // 2. Margin of Safety (对现价的折价空间)
+            const safetyMargin = (Math.abs(stockPrice - strikePrice) / stockPrice) * 100;
+            let safetyFavorable = false;
+            let safetyDesc = "";
+
+            if (activeStrategy === "PUT") {
+                // Favorable: strike below stock price (safety cushion)
+                safetyFavorable = strikePrice < stockPrice;
+                if (safetyFavorable) {
+                    safetyDesc = `比现价折价 ${safetyMargin.toFixed(1)}% 接货`;
+                } else {
+                    safetyDesc = `溢价 ${safetyMargin.toFixed(1)}% (实值Put风险大)`;
+                }
+            } else {
+                // Favorable: strike above stock price (capital appreciation potential)
+                safetyFavorable = strikePrice > stockPrice;
+                if (safetyFavorable) {
+                    safetyDesc = `现价距行权价仍有 ${safetyMargin.toFixed(1)}% 涨幅`;
+                } else {
+                    safetyDesc = `低于现价 ${safetyMargin.toFixed(1)}% (防守型实值Call)`;
+                }
+            }
+
+            const outSafety = document.getElementById("out-safety");
+            outSafety.innerText = `${safetyFavorable ? '' : '-'}${safetyMargin.toFixed(2)}%`;
+            document.getElementById("out-safety-desc").innerText = safetyDesc;
+
+            // Highlight color for safety margin
+            if (safetyFavorable) {
+                outSafety.className = "text-2xl font-extrabold text-accentGreen font-mono block mt-1";
+                document.getElementById("safety-progress").className = "bg-accentGreen h-1.5 rounded-full transition-all duration-300";
+            } else {
+                outSafety.className = "text-2xl font-extrabold text-accentRed font-mono block mt-1";
+                document.getElementById("safety-progress").className = "bg-accentRed h-1.5 rounded-full transition-all duration-300";
+            }
+            const safetyPercent = Math.min(safetyMargin * 4, 100); // Scale for bar width visual mapping
+            document.getElementById("safety-progress").style.width = `${safetyPercent}%`;
+
+
+            // 3. Left Column Card B Alert Interaction (Selected strike relative to strong support)
+            const alertCard = document.getElementById("strike-position-alert");
+            const alertIcon = document.getElementById("alert-icon-container");
+            const alertText = document.getElementById("alert-text");
+
+            if (activeStrategy === "PUT") {
+                if (strikePrice < profile.support) {
+                    // Very safe! Strike price is below strong support. Highlight Green!
+                    alertCard.className = "p-3 rounded-xl bg-accentGreen/10 border border-accentGreen/30 relative overflow-hidden transition-all duration-300";
+                    alertIcon.className = "p-1 rounded bg-accentGreen/20 text-accentGreen mt-0.5";
+                    alertIcon.innerHTML = `<i data-lucide="shield" class="w-4 h-4"></i>`;
+                    alertText.innerHTML = `行权价 <strong class="text-accentGreen font-mono">$${strikePrice.toFixed(2)}</strong> 低于强支撑位 <strong class="text-slate-200 font-mono">$${profile.support.toFixed(2)}</strong>。阻挡层保护充分，接货安全边际极高！`;
+                } else {
+                    // Strike is above support, might get exercised earlier
+                    alertCard.className = "p-3 rounded-xl bg-accentYellow/10 border border-accentYellow/30 relative overflow-hidden transition-all duration-300";
+                    alertIcon.className = "p-1 rounded bg-accentYellow/20 text-accentYellow mt-0.5";
+                    alertIcon.innerHTML = `<i data-lucide="alert-triangle" class="w-4 h-4"></i>`;
+                    alertText.innerHTML = `行权价 <strong class="text-accentYellow font-mono">$${strikePrice.toFixed(2)}</strong> 高于强支撑位 <strong class="text-slate-200 font-mono">$${profile.support.toFixed(2)}</strong>。建议下调行权价以规避破位接货风险。`;
+                }
+            } else {
+                // Sell Call strategy alerts (relates to resistance)
+                if (strikePrice > profile.resistance) {
+                    alertCard.className = "p-3 rounded-xl bg-accentGreen/10 border border-accentGreen/30 relative overflow-hidden transition-all duration-300";
+                    alertIcon.className = "p-1 rounded bg-accentGreen/20 text-accentGreen mt-0.5";
+                    alertIcon.innerHTML = `<i data-lucide="shield" class="w-4 h-4"></i>`;
+                    alertText.innerHTML = `行权价 <strong class="text-accentGreen font-mono">$${strikePrice.toFixed(2)}</strong> 高于强阻力位 <strong class="text-slate-200 font-mono">$${profile.resistance.toFixed(2)}</strong>。正股大概率不会被行权买走，适合稳赚租金。`;
+                } else {
+                    alertCard.className = "p-3 rounded-xl bg-accentYellow/10 border border-accentYellow/30 relative overflow-hidden transition-all duration-300";
+                    alertIcon.className = "p-1 rounded bg-accentYellow/20 text-accentYellow mt-0.5";
+                    alertIcon.innerHTML = `<i data-lucide="alert-triangle" class="w-4 h-4"></i>`;
+                    alertText.innerHTML = `行权价 <strong class="text-accentYellow font-mono">$${strikePrice.toFixed(2)}</strong> 低于强阻力位 <strong class="text-slate-200 font-mono">$${profile.resistance.toFixed(2)}</strong>。上行空间受限，若被行权买走可能提早止盈离场。`;
+                }
+            }
+            // re-render dynamic lucide icons in the alert box
+            lucide.createIcons();
+
+
+            // 4. Vibe Score Calculation (0-100) & Scorecard Grading
+            let score = 50; // base score
+
+            // Yield component (8% - 25% is sweet spot)
+            if (annualizedYield >= 8 && annualizedYield <= 25) {
+                score += (annualizedYield - 8) * 1.5; // bonus up to ~25 points
+            } else if (annualizedYield > 25 && annualizedYield <= 40) {
+                score += 25; // max yield points
+            } else if (annualizedYield > 40) {
+                score += 15; // penalty for extreme risk volatility dividend traps
+            } else {
+                score -= (8 - annualizedYield) * 3; // penalty for low yield
+            }
+
+            // Margin of safety and Technical support alignment
+            if (activeStrategy === "PUT") {
+                if (strikePrice < stockPrice) {
+                    score += 15; // OTM bonus
+                    if (strikePrice < profile.support) {
+                        score += 15; // below support strong buffer bonus
+                    }
+                } else {
+                    score -= 20; // ITM penalty
+                }
+            } else {
+                if (strikePrice > stockPrice) {
+                    score += 10; // OTM bonus
+                    if (strikePrice > profile.resistance) {
+                        score += 10; // above resistance bonus
+                    }
+                } else {
+                    score -= 15; // ITM penalty
+                }
+            }
+
+            // Days to maturity decay component (14-45 days is sweet spot)
+            if (days >= 14 && days <= 45) {
+                score += 10;
+            } else if (days < 10) {
+                score -= 10; // gamma risk
+            } else if (days > 70) {
+                score -= 5; // slow theta decay
+            }
+
+            // Bind limits (0-100)
+            score = Math.max(0, Math.min(100, Math.round(score)));
+
+            // Score Grade
+            let grade = "C";
+            let gradeColor = "text-accentRed";
+            let strokeColor = "#ff3366";
+            if (score >= 85) {
+                grade = "AAA 顶配";
+                gradeColor = "text-accentGreen";
+                strokeColor = "#00ff87";
+            } else if (score >= 70) {
+                grade = "A 优秀";
+                gradeColor = "text-accentBlue";
+                strokeColor = "#00e5ff";
+            } else if (score >= 50) {
+                grade = "B 合理";
+                gradeColor = "text-accentYellow";
+                strokeColor = "#ffd600";
+            } else {
+                grade = "D 较差";
+                gradeColor = "text-accentRed";
+                strokeColor = "#ff3366";
+            }
+
+            document.getElementById("out-score").innerText = score;
+            const outGrade = document.getElementById("out-score-grade");
+            outGrade.innerText = grade;
+            outGrade.className = `text-xs font-bold font-sans ${gradeColor}`;
+            
+            // Update circular progress SVG ring
+            const scoreRing = document.getElementById("score-ring");
+            // Stroke-dasharray is 2 * Math.PI * r = 2 * 3.14159 * 26 = ~163.3
+            const dashOffset = 163.3 - (163.3 * score) / 100;
+            scoreRing.setAttribute("stroke-dashoffset", dashOffset);
+            scoreRing.setAttribute("stroke", strokeColor);
+            
+            const ringText = document.getElementById("score-ring-text");
+            ringText.innerText = `${score}%`;
+            ringText.className = `absolute text-[10px] font-bold font-mono ${gradeColor}`;
+
+
+            // 5. Dynamic Smart AI Copilot Recommendation Text
+            let advice = "";
+            if (activeStrategy === "PUT") {
+                if (score >= 75) {
+                    advice = `【策略建议】当前选中 <strong>Sell Put (折价接货)</strong> 策略，标的 <strong>${profile.symbol}</strong>。行权价 <strong>$${strikePrice.toFixed(2)}</strong> 已成功避开强支撑位（安全边际达 <strong>${safetyMargin.toFixed(1)}%</strong>），且静态年化收益率达 <strong>${annualizedYield.toFixed(1)}%</strong>。这属于典型的高性价比“吃肉区间”，既能以极具吸引力的低价配置该资产，也能享受优质的期权权利金收益。强烈建议执行！`;
+                } else if (score >= 55) {
+                    advice = `【投研点评】当前 <strong>Sell Put</strong> 策略性价比一般（评分 <strong>${score}分</strong>）。行权价 <strong>$${strikePrice.toFixed(2)}</strong> 较为合理，但如果能将行权价降至 <strong>$${profile.support.toFixed(2)}</strong> 以下，将获得更坚固的支撑。目前 <strong>${annualizedYield.toFixed(1)}%</strong> 的年化收益率尚可，若无强烈接货意愿，可适当等待波动率放大再行建仓。`;
+                } else {
+                    advice = `【风险警示】当前 <strong>Sell Put</strong> 策略评分仅为 <strong>${score}分</strong>，风险暴露较大！由于行权价 <strong>$${strikePrice.toFixed(2)}</strong> 已经高于或非常接近现价（实值或平值），安全垫不足（仅 <strong>${safetyMargin.toFixed(1)}%</strong>）。若股价破位，你将面临高位接货的被动局面。建议调低行权价或等待均线形态回暖。`;
+                }
+            } else {
+                // Sell Call
+                if (score >= 70) {
+                    advice = `【策略建议】当前 <strong>Covered Call (备兑收租)</strong> 策略性价比优秀（评分 <strong>${score}分</strong>）。行权价 <strong>$${strikePrice.toFixed(2)}</strong> 设在强阻力位 <strong>$${profile.resistance.toFixed(2)}</strong> 上方，兼顾了 <strong>${annualizedYield.toFixed(1)}%</strong> 的稳健年化租金回报，同时保留了正股约 <strong>${safetyMargin.toFixed(1)}%</strong> 的上行资本增值空间。正股被行权概率较低，适合安心收租。`;
+                } else if (score >= 50) {
+                    advice = `【投研点评】当前 <strong>Covered Call</strong> 策略中规中矩（评分 <strong>${score}分</strong>）。行权价 <strong>$${strikePrice.toFixed(2)}</strong> 对上方阻力位突破的防守一般。目前 <strong>${annualizedYield.toFixed(1)}%</strong> 的年化收益尚可，但若正股受催化剂（<strong>${profile.catalyst.substring(0, 15)}...</strong>）影响暴力拉升，可能导致正股被提早行权锁定收益。建议视催化剂天数灵活调整。`;
+                } else {
+                    advice = `【风险警示】当前 <strong>Covered Call</strong> 策略评分较低（<strong>${score}分</strong>）。行权价 <strong>$${strikePrice.toFixed(2)}</strong> 过低，导致正股上行空间被完全锁死。虽然当前年化收益率看似可观，但在大牛市或标的爆发时将严重跑输，甚至产生被动平仓。建议将行权价调高至 <strong>$${profile.resistance.toFixed(2)}</strong> 以上。`;
+                }
+            }
+
+            document.getElementById("copilot-advice").innerHTML = advice;
+        }
+
+        // Simulate order submission
+        function simulateOrderSubmit() {
+            const stockPrice = parseFloat(document.getElementById("input-stock-price").value);
+            const strikePrice = parseFloat(document.getElementById("input-strike-price").value);
+            const premium = parseFloat(document.getElementById("input-premium").value);
+            const days = parseFloat(document.getElementById("input-days").value);
+            
+            const direction = activeStrategy === "PUT" ? "卖出认沽 (Sell Put)" : "卖出认购 (Sell Call)";
+            const code = `${activeTicker} 260715P${(strikePrice * 1000).toString().padStart(8, '0')}`; // simulated option ticker code
+            
+            addConsoleLog(`Executing order skill... Preparing broker payload.`, "info");
+            
+            // Delay simulation for realistic terminal vibe
+            setTimeout(() => {
+                addConsoleLog(`[Futu API] Sending Trade Instruction: ${direction} | Symbol: ${activeTicker} | Strike: $${strikePrice} | Price (Limit): $${premium} | Qty: 1 contract`, "warn");
+                
+                setTimeout(() => {
+                    addConsoleLog(`[Futu API] Order Status: PLACED (ID: ord_${Math.floor(Math.random() * 899999 + 100000)}). Simulated Match.`, "success");
+                    alert(`【富途 OpenAPI 模拟下单成功】\n代码: ${code}\n策略: ${direction}\n行权价: $${strikePrice}\n限价权利金: $${premium}\n数量: 1张`);
+                }, 800);
+            }, 600);
+        }
+
+        // Trigger default profile loading on start
+        window.addEventListener("DOMContentLoaded", () => {
+            selectStock("NVDA");
+        });
+    </script>
+</body>
+</html>
