@@ -12,8 +12,8 @@
             theme: {
                 extend: {
                     colors: {
-                        darkBg: '#090d16',
-                        panelBg: '#111726',
+                        darkBg: '#080b10',
+                        panelBg: '#101625',
                         accentGreen: '#00ff87',
                         accentRed: '#ff3366',
                         accentYellow: '#ffd600',
@@ -39,22 +39,22 @@
     <style>
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #080b11;
+            background-color: #06090e;
             background-image: 
-                radial-gradient(at 0% 0%, rgba(13, 25, 48, 0.5) 0px, transparent 50%),
-                radial-gradient(at 100% 100%, rgba(9, 21, 38, 0.4) 0px, transparent 50%),
-                linear-gradient(rgba(255, 255, 255, 0.007) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 255, 255, 0.007) 1px, transparent 1px);
+                radial-gradient(at 0% 0%, rgba(13, 25, 48, 0.6) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(9, 21, 38, 0.5) 0px, transparent 50%),
+                linear-gradient(rgba(255, 255, 255, 0.006) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.006) 1px, transparent 1px);
             background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
         }
 
         /* Glassmorphism Panel */
         .glass-panel {
-            background: rgba(17, 23, 38, 0.75);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            background: rgba(16, 22, 37, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.5);
         }
 
         /* Custom Scrollbar */
@@ -66,18 +66,18 @@
             background: rgba(8, 11, 17, 0.5);
         }
         ::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.08);
             border-radius: 3px;
         }
         ::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.18);
         }
 
         /* Input Range Styling */
         input[type="range"] {
             -webkit-appearance: none;
             appearance: none;
-            background: #1e293b;
+            background: #182235;
             height: 6px;
             border-radius: 3px;
             outline: none;
@@ -106,12 +106,28 @@
         .live-indicator {
             animation: pulse-glow 2s infinite ease-in-out;
         }
+
+        /* Math formula notation styling */
+        .math-fraction {
+            display: inline-flex;
+            flex-direction: column;
+            vertical-align: middle;
+            text-align: center;
+            padding: 0 4px;
+        }
+        .math-numerator {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+            padding-bottom: 1px;
+        }
+        .math-denominator {
+            padding-top: 1px;
+        }
     </style>
 </head>
 <body class="text-slate-100 min-h-screen flex flex-col antialiased pb-8">
 
     <!-- Header Block -->
-    <header class="w-full border-b border-white/5 bg-slate-950/40 backdrop-blur-md sticky top-0 z-50">
+    <header class="w-full border-b border-white/5 bg-slate-950/50 backdrop-blur-md sticky top-0 z-50">
         <div class="max-w-[1600px] mx-auto px-4 md:px-6 py-3.5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             
             <!-- Logo & Title -->
@@ -402,6 +418,32 @@
                     </div>
                 </div>
 
+                <!-- Live Mock Option Chain Table -->
+                <div class="mb-6 p-4 rounded-xl bg-slate-900/50 border border-white/5">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                            <i data-lucide="layers" class="w-4 h-4 text-accentBlue"></i> 实时热门期权链推荐 (快捷填充)
+                        </span>
+                        <span class="text-[9px] text-slate-500">点击对应期权行自动代入计算器</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs text-slate-300 font-mono">
+                            <thead>
+                                <tr class="text-slate-500 border-b border-white/5 pb-1">
+                                    <th class="py-1 px-2">类型</th>
+                                    <th class="py-1 px-2">行权价</th>
+                                    <th class="py-1 px-2">权利金</th>
+                                    <th class="py-1 px-2">到期天数</th>
+                                    <th class="py-1 px-2 text-right">预估年化</th>
+                                </tr>
+                            </thead>
+                            <tbody id="mock-option-chain-body" class="divide-y divide-white/5">
+                                <!-- Dynamic options list based on active stock and active strategy -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <!-- Calculation Output Grid -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mt-4">
                     
@@ -416,7 +458,21 @@
                             <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
                                 <div id="yield-progress" class="bg-gradient-to-r from-accentBlue to-accentGreen h-1.5 rounded-full transition-all duration-300" style="width: 0%"></div>
                             </div>
-                            <span class="text-[9px] text-slate-500 font-mono block mt-1" id="out-yield-formula">公式: (3.5 / 115) * (365 / 30)</span>
+                            <!-- Styled Math Formula Display -->
+                            <div class="text-[10px] text-slate-400 mt-2 bg-slate-950/40 p-2 rounded border border-white/5 font-mono flex items-center justify-center gap-1.5">
+                                <span id="formula-latex-left">年化</span> = 
+                                <span class="math-fraction">
+                                    <span class="math-numerator" id="formula-latex-num">权利金</span>
+                                    <span class="math-denominator" id="formula-latex-den">行权价</span>
+                                </span> 
+                                × 
+                                <span class="math-fraction">
+                                    <span class="math-numerator">365</span>
+                                    <span class="math-denominator" id="formula-latex-days">天数</span>
+                                </span>
+                                = <span class="text-accentGreen font-bold" id="formula-latex-res">--</span>
+                            </div>
+                            <span class="text-[9px] text-slate-500 font-mono block mt-1 text-center" id="out-yield-formula">--</span>
                         </div>
                     </div>
 
@@ -431,7 +487,16 @@
                             <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
                                 <div id="safety-progress" class="bg-accentBlue h-1.5 rounded-full transition-all duration-300" style="width: 0%"></div>
                             </div>
-                            <span class="text-[9px] text-slate-500 font-mono block mt-1" id="out-safety-desc">比正股折价 --% 购入</span>
+                            <!-- Styled Safety Math Formula -->
+                            <div class="text-[10px] text-slate-400 mt-2 bg-slate-950/40 p-2 rounded border border-white/5 font-mono flex items-center justify-center gap-1.5">
+                                <span>安全垫</span> = 
+                                <span class="math-fraction">
+                                    <span class="math-numerator">|现价 - 行权|</span>
+                                    <span class="math-denominator">现价</span>
+                                </span>
+                                = <span class="text-accentBlue font-bold" id="formula-safety-res">--</span>
+                            </div>
+                            <span class="text-[9px] text-slate-500 font-mono block mt-1 text-center" id="out-safety-desc">比正股折价 --% 购入</span>
                         </div>
                     </div>
 
@@ -449,7 +514,7 @@
                         <!-- Visual Ring Gauge -->
                         <div class="relative w-16 h-16 flex items-center justify-center shrink-0">
                             <svg class="w-full h-full transform -rotate-90">
-                                <circle cx="32" cy="32" r="26" stroke="#1e293b" stroke-width="4.5" fill="transparent" />
+                                <circle cx="32" cy="32" r="26" stroke="#182235" stroke-width="4.5" fill="transparent" />
                                 <circle id="score-ring" cx="32" cy="32" r="26" stroke="#00ff87" stroke-width="4.5" fill="transparent" 
                                         stroke-dasharray="163.3" stroke-dashoffset="163.3" stroke-linecap="round" class="transition-all duration-500" />
                             </svg>
@@ -502,8 +567,8 @@
             </div>
             <!-- Log output items -->
             <div class="font-mono text-[11px] text-slate-400 space-y-1 max-h-[100px] overflow-y-auto" id="console-logs">
-                <p class="text-slate-500"><span class="text-accentBlue">[07:48:15]</span> SYSTEM: Web framework loaded successfully. Ready for valuation calculations.</p>
-                <p class="text-slate-500"><span class="text-accentBlue">[07:48:16]</span> API: Fetching option chain matrix for NVDA... Completed.</p>
+                <p class="text-slate-500"><span class="text-accentBlue">[16:30:00]</span> SYSTEM: Web framework loaded successfully. Ready for valuation calculations.</p>
+                <p class="text-slate-500"><span class="text-accentBlue">[16:30:01]</span> API: Fetching option chain matrix for NVDA... Completed.</p>
             </div>
         </div>
     </footer>
@@ -535,7 +600,19 @@
                 trend: "均线多头排列（MA20 > MA50 > MA120）",
                 trendType: "bullish",
                 support: 118.00,
-                resistance: 135.00
+                resistance: 135.00,
+                chain: {
+                    PUT: [
+                        { strike: 115.00, premium: 3.50, days: 30 },
+                        { strike: 120.00, premium: 5.80, days: 30 },
+                        { strike: 110.00, premium: 1.90, days: 30 }
+                    ],
+                    CALL: [
+                        { strike: 130.00, premium: 4.20, days: 30 },
+                        { strike: 135.00, premium: 2.10, days: 30 },
+                        { strike: 140.00, premium: 0.95, days: 30 }
+                    ]
+                }
             },
             AAPL: {
                 symbol: "AAPL",
@@ -556,7 +633,19 @@
                 trend: "多空震荡整理（MA20/MA50交织，在支撑位附近企稳）",
                 trendType: "neutral",
                 support: 205.00,
-                resistance: 222.00
+                resistance: 222.00,
+                chain: {
+                    PUT: [
+                        { strike: 205.00, premium: 4.80, days: 30 },
+                        { strike: 200.00, premium: 2.50, days: 30 },
+                        { strike: 195.00, premium: 1.20, days: 30 }
+                    ],
+                    CALL: [
+                        { strike: 220.00, premium: 5.10, days: 30 },
+                        { strike: 225.00, premium: 2.90, days: 30 },
+                        { strike: 230.00, premium: 1.45, days: 30 }
+                    ]
+                }
             },
             TSLA: {
                 symbol: "TSLA",
@@ -565,7 +654,7 @@
                 change: "+8.3%",
                 changeType: "up",
                 business: "智能电动车领军企业，致力于垂直整合产业链，并加速向FSD自动驾驶、机器人与储能转型。",
-                howWeMakeMoney: "电动汽车销售与租赁、FSD软件订阅授权、储能电池（Megapack）以及超级充电 network服务。",
+                howWeMakeMoney: "电动汽车销售与租赁、FSD软件订阅授权、储能电池（Megapack）以及超级充电网络服务。",
                 revenue: [
                     { name: "智能电动汽车销售", value: 82, color: "#00ff87" },
                     { name: "Megapack 储能储电", value: 9, color: "#00e5ff" },
@@ -576,7 +665,19 @@
                 trend: "技术形态探底回升（向上突破MA50阻力，短期多头较强）",
                 trendType: "bullish",
                 support: 174.00,
-                resistance: 198.00
+                resistance: 198.00,
+                chain: {
+                    PUT: [
+                        { strike: 175.00, premium: 5.20, days: 30 },
+                        { strike: 170.00, premium: 3.10, days: 30 },
+                        { strike: 165.00, premium: 1.75, days: 30 }
+                    ],
+                    CALL: [
+                        { strike: 195.00, premium: 6.40, days: 30 },
+                        { strike: 200.00, premium: 3.90, days: 30 },
+                        { strike: 205.00, premium: 2.20, days: 30 }
+                    ]
+                }
             }
         };
 
@@ -593,6 +694,50 @@
             const logHTML = `<p class="text-slate-400"><span class="${colorClass}">[${timeStr}]</span> ${message}</p>`;
             container.innerHTML += logHTML;
             container.scrollTop = container.scrollHeight;
+        }
+
+        // Fill data from option chain selection
+        function fillOptionFromChain(strike, premium, days) {
+            document.getElementById("input-strike-price").value = strike;
+            document.getElementById("slider-strike-price").value = strike;
+            document.getElementById("input-premium").value = premium;
+            document.getElementById("slider-premium").value = premium;
+            document.getElementById("input-days").value = days;
+            document.getElementById("slider-days").value = days;
+            
+            addConsoleLog(`Loaded Option Chain Row: Strike $${strike}, Premium $${premium}, Days ${days}`, "success");
+            calculateAll();
+        }
+
+        // Render option chain table list
+        function renderOptionChain() {
+            const profile = stockProfiles[activeTicker];
+            const chainList = profile.chain[activeStrategy];
+            const chainBody = document.getElementById("mock-option-chain-body");
+            chainBody.innerHTML = "";
+
+            chainList.forEach(opt => {
+                let estYield = 0;
+                if (activeStrategy === "PUT") {
+                    estYield = (opt.premium / opt.strike) * (365 / opt.days) * 100;
+                } else {
+                    estYield = (opt.premium / profile.price) * (365 / opt.days) * 100;
+                }
+
+                chainBody.innerHTML += `
+                    <tr onclick="fillOptionFromChain(${opt.strike}, ${opt.premium}, ${opt.days})" class="hover:bg-white/5 cursor-pointer transition-colors">
+                        <td class="py-2 px-2">
+                            <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${activeStrategy === 'PUT' ? 'bg-accentGreen/10 text-accentGreen' : 'bg-accentRed/10 text-accentRed'}">
+                                ${activeStrategy === 'PUT' ? '认沽 Put' : '认购 Call'}
+                            </span>
+                        </td>
+                        <td class="py-2 px-2 font-bold text-white">$${opt.strike.toFixed(2)}</td>
+                        <td class="py-2 px-2 text-accentBlue">$${opt.premium.toFixed(2)}</td>
+                        <td class="py-2 px-2 text-slate-400">${opt.days} 天</td>
+                        <td class="py-2 px-2 text-right font-bold text-accentGreen font-mono">${estYield.toFixed(1)}%</td>
+                    </tr>
+                `;
+            });
         }
 
         // Ticker selection handler
@@ -693,7 +838,8 @@
 
             addConsoleLog(`Profile switched to ${ticker}. Spot: $${profile.price}, support: $${profile.support}, resistance: $${profile.resistance}.`, "info");
             
-            // Recompute outputs
+            // Recompute outputs & Option chain list
+            renderOptionChain();
             calculateAll();
         }
 
@@ -735,6 +881,7 @@
             }
 
             addConsoleLog(`Strategy toggled to ${strategy === "PUT" ? "Sell Put (现金接货)" : "Sell Call (备兑收租)"}.`, "success");
+            renderOptionChain();
             calculateAll();
         }
 
@@ -780,18 +927,29 @@
             if (activeStrategy === "PUT") {
                 // Sell Put formula: (Premium / Strike) * (365 / Days) * 100
                 annualizedYield = (premium / strikePrice) * (365 / days) * 100;
-                yieldFormulaText = `公式: (${premium.toFixed(2)} / ${strikePrice.toFixed(2)}) × (365 / ${days}天)`;
+                yieldFormulaText = `数值代入: (${premium.toFixed(2)} / ${strikePrice.toFixed(2)}) × (365 / ${days}天) × 100%`;
+                
+                // Update math visual elements
+                document.getElementById("formula-latex-left").innerText = "年化Put收益";
+                document.getElementById("formula-latex-den").innerText = `行权价($${strikePrice.toFixed(1)})`;
             } else {
                 // Sell Call formula: (Premium / StockPrice) * (365 / Days) * 100
                 annualizedYield = (premium / stockPrice) * (365 / days) * 100;
-                yieldFormulaText = `公式: (${premium.toFixed(2)} / ${stockPrice.toFixed(2)}) × (365 / ${days}天)`;
+                yieldFormulaText = `数值代入: (${premium.toFixed(2)} / ${stockPrice.toFixed(2)}) × (365 / ${days}天) × 100%`;
+                
+                // Update math visual elements
+                document.getElementById("formula-latex-left").innerText = "年化Call收益";
+                document.getElementById("formula-latex-den").innerText = `正股价($${stockPrice.toFixed(1)})`;
             }
 
             document.getElementById("out-yield").innerText = `${annualizedYield.toFixed(2)}%`;
             document.getElementById("out-yield-formula").innerText = yieldFormulaText;
+            document.getElementById("formula-latex-num").innerText = `权利金($${premium.toFixed(2)})`;
+            document.getElementById("formula-latex-days").innerText = `${days}天`;
+            document.getElementById("formula-latex-res").innerText = `${annualizedYield.toFixed(1)}%`;
 
-            // Yield visual progress bar (cap indicator width at 40% yield)
-            const yieldPercent = Math.min((annualizedYield / 40) * 100, 100);
+            // Yield visual progress bar (cap indicator width at 45% yield)
+            const yieldPercent = Math.min((annualizedYield / 45) * 100, 100);
             document.getElementById("yield-progress").style.width = `${yieldPercent}%`;
 
             // 2. Margin of Safety (对现价的折价空间)
@@ -820,6 +978,7 @@
             const outSafety = document.getElementById("out-safety");
             outSafety.innerText = `${safetyFavorable ? '' : '-'}${safetyMargin.toFixed(2)}%`;
             document.getElementById("out-safety-desc").innerText = safetyDesc;
+            document.getElementById("formula-safety-res").innerText = `${safetyMargin.toFixed(1)}%`;
 
             // Highlight color for safety margin
             if (safetyFavorable) {
